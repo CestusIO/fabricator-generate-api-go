@@ -1,0 +1,32 @@
+!!pathreplace VERSION {{.ExtInfo.Version}}
+{{ CodeSectionFileHeader | ToGoComment }}
+package {{.PluginComponent.Spec.ServiceName | ToGoPackageName }}_{{.ExtInfo.Version}}
+
+// region CODE_REGION(GEN)
+//go:generate protoc -I . {{.ExtInfo.Version}}_common.proto --go_out=module={{.GoModule}}/{{.ExtInfo.Version}}/go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_common:./go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_common --blaze_out=module={{.GoModule}}/{{.ExtInfo.Version}}/go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_common:./go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_common
+
+
+{{if .ExtInfo.VersionHasPlayerAPI}}
+
+//go:generate protoc -I . {{.ExtInfo.Version}}_player_service.proto --go_out=module={{.GoModule}}/{{.ExtInfo.Version}}/go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_player:./go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_player --blaze_out=module={{.GoModule}}/{{.ExtInfo.Version}}/go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_player:./go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_player
+{{end}}
+
+{{if .ExtInfo.VersionHasS2SAPI}}
+
+//go:generate protoc -I . {{.ExtInfo.Version}}_s2s_service.proto --go_out=module={{.GoModule}}/{{.ExtInfo.Version}}/go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_s2s:./go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_s2s --blaze_out=module={{.GoModule}}/{{.ExtInfo.Version}}/go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_s2s:./go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_s2s
+
+{{end}}
+
+{{if .ExtInfo.VersionHasAdminAPI}}
+
+//go:generate protoc -I . {{.ExtInfo.Version}}_admin_service.proto --go_out=module={{.GoModule}}/{{.ExtInfo.Version}}/go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_admin:./go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_admin --blaze_out=module={{.GoModule}}/{{.ExtInfo.Version}}/go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_admin:./go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_admin
+
+{{end}}
+
+{{if .ExtInfo.VersionHasPublicAPI}}
+
+//go:generate protoc -I . {{.ExtInfo.Version}}_public_service.proto --go_out=module={{.GoModule}}/{{.ExtInfo.Version}}/go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_public:./go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_public --blaze_out=module={{.GoModule}}/{{.ExtInfo.Version}}/go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_public:./go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.ExtInfo.Version}}_public
+
+{{end}}
+
+// endregion

@@ -1,0 +1,13 @@
+!!pathreplace VERSION {{.ExtInfo.Version}}
+!!filename {{.PluginComponent.Spec.ServiceName | ToGoPackageName }}_test.go
+{{ CodeSectionFileHeader | ToGoComment }}
+package {{.PluginComponent.Spec.ServiceName | ToGoPackageName }}_{{.ExtInfo.Version}}_test
+
+import (
+	. "github.com/onsi/ginkgo/v2"
+	_ "github.com/onsi/gomega"
+)
+
+var _ = Describe("{{.PluginComponent.Spec.ServiceName | ToGoName }}", func() {
+
+})

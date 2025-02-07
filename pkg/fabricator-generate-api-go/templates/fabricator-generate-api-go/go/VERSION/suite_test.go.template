@@ -1,0 +1,16 @@
+!!pathreplace VERSION {{.ExtInfo.Version}}
+!!filename {{.PluginComponent.Spec.ServiceName | ToGoPackageName }}_suite_test.go
+{{ CodeSectionFileHeader | ToGoComment }}
+package {{.PluginComponent.Spec.ServiceName | ToGoPackageName }}_{{.ExtInfo.Version}}_test
+
+import (
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	"testing"
+)
+
+func Test{{.PluginComponent.Spec.ServiceName | ToGoName }}(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "{{.PluginComponent.Spec.ServiceName | ToGoName }} Suite")
+}

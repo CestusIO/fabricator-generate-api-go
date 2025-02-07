@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"code.cestus.io/libs/codegenerator/pkg/templating"
 
@@ -36,6 +37,95 @@ func (p *plugin) GoModule() string {
 	return p.goModule
 }
 
+type ApiExtInfo struct {
+	IsPlayerAPI         bool
+	IsS2SAPI            bool
+	IsAdminAPI          bool
+	IsPublicAPI         bool
+	IsV1                bool
+	VersionHasPlayerAPI bool
+	VersionHasS2SAPI    bool
+	VersionHasPublicAPI bool
+	VersionHasAdminAPI  bool
+}
+
+type ExtInfo struct {
+	Version             string
+	IsV1                bool
+	VersionHasPlayerAPI bool
+	VersionHasS2SAPI    bool
+	VersionHasPublicAPI bool
+	VersionHasAdminAPI  bool
+}
+
+func extInfoFromAPI(apis []API) ExtInfo {
+	a := ExtInfo{}
+	for _, api := range apis {
+		a.IsV1 = api.Version == "v1"
+		a.Version = api.Version
+		switch api.Kind {
+		case Public:
+			a.VersionHasPublicAPI = true
+		case Player:
+			a.VersionHasPlayerAPI = true
+		case S2S:
+			a.VersionHasS2SAPI = true
+		case Admin:
+			a.VersionHasAdminAPI = true
+		}
+	}
+	return a
+}
+func apiExtInfoFromAPI(api API, all []API) ApiExtInfo {
+	a := ApiExtInfo{
+		IsV1: api.Version == "v1",
+	}
+	switch api.Kind {
+	case Public:
+		a.IsPublicAPI = true
+	case Player:
+		a.IsPlayerAPI = true
+	case S2S:
+		a.IsS2SAPI = true
+	case Admin:
+		a.IsAdminAPI = true
+	}
+	for _, aa := range all {
+		if api.Kind != aa.Kind {
+			continue
+		}
+		switch aa.Kind {
+		case Public:
+			a.VersionHasPublicAPI = true
+		case Player:
+			a.VersionHasPlayerAPI = true
+		case S2S:
+			a.VersionHasS2SAPI = true
+		case Admin:
+			a.VersionHasAdminAPI = true
+		}
+	}
+	return a
+}
+
+func toAPIVersionMap(apis []API) map[string][]API {
+	m := make(map[string][]API)
+	for _, api := range apis {
+		// find
+		apiVersion := strings.ToLower(api.Version)
+		m[apiVersion] = append(m[apiVersion], api)
+	}
+	return m
+}
+
+type ApiGenContext struct {
+	CodeGenerator   buildinfo.BuildInfo
+	GoModule        string
+	PluginComponent PluginComponent
+	API             API
+	ExtInfo         ApiExtInfo
+}
+
 // region CODE_REGION(GENERATION_CONTEXT)
 type GenerationContext struct {
 	CodeGenerator       buildinfo.BuildInfo
@@ -45,6 +135,8 @@ type GenerationContext struct {
 	ReplaceDependencies ReplaceDependencies
 	ToolDependencies    ToolDependencies
 	// endregion
+	ApiGenContexts []ApiGenContext
+	ExtInfo        ExtInfo
 }
 
 func (p *plugin) generationContexts(ctx context.Context, io fabricator.IOStreams) ([]GenerationContext, error) {
@@ -68,10 +160,58 @@ func (p *plugin) generationContexts(ctx context.Context, io fabricator.IOStreams
 		for k, o := range component.Spec.ToolDependency {
 			gencontext.ToolDependencies[k] = o
 		}
-		contexts = append(contexts, gencontext)
+		// sort by apiversion and run a generation per unique one.
+		// This allows manipulating the working directory since it is needed for go modules
+		// since commands dont pass module boundaries.
+		apiMap := toAPIVersionMap(component.Spec.Apis)
+		for _, v := range apiMap {
+			for _, a := range v {
+				ac := ApiGenContext{
+					CodeGenerator:   buildinfo.ProvideBuildInfo(),
+					GoModule:        p.GoModule(),
+					PluginComponent: component,
+					API:             a,
+					ExtInfo:         apiExtInfoFromAPI(a, v),
+				}
+				gencontext.ApiGenContexts = append(gencontext.ApiGenContexts, ac)
+			}
+			gencontext.ExtInfo = extInfoFromAPI(v)
+			contexts = append(contexts, gencontext)
+		}
 	}
 
 	return contexts, nil
+}
+
+func generateAPI(ctx context.Context, io fabricator.IOStreams, templates []templating.Template, root string, genCtx ApiGenContext) (err error) {
+	var genCmds [][]string
+	executor := helpers.NewExecutor(root, io)
+	generatedFiles, generationCommands, err := templating.Render(templates, root, genCtx, []string{}...)
+	if err != nil {
+		return fmt.Errorf("failed to generate template for %s: %s", PluginName, err)
+	}
+
+	for _, generatedFile := range generatedFiles {
+		generatedFile, _ = filepath.Rel(root, generatedFile)
+		fmt.Fprintf(io.Out, "%s\n", generatedFile)
+	}
+	genCmds = append(genCmds, generationCommands...)
+
+	// format files first so we dont run into generation failures
+	for _, generationCommand := range genCmds {
+		if generationCommand[0] == "goimports" {
+			if err = executor.Run(ctx, generationCommand[0], generationCommand[1:]...); err != nil {
+				return fmt.Errorf("failed to run template generation commands for project: %s", err)
+			}
+		}
+	}
+
+	for _, generationCommand := range genCmds {
+		if err = executor.Run(ctx, generationCommand[0], generationCommand[1:]...); err != nil {
+			return fmt.Errorf("failed to run template generation commands for project: %s", err)
+		}
+	}
+	return nil
 }
 
 func (p *plugin) Generate(ctx context.Context, io fabricator.IOStreams, patterns ...string) (err error) {
@@ -79,10 +219,26 @@ func (p *plugin) Generate(ctx context.Context, io fabricator.IOStreams, patterns
 	if err != nil {
 		return fmt.Errorf("failed to generate template contexts for %s: %s", PluginName, err)
 	}
-	var extGen [][]string
-	var genCmds [][]string
-	executor := helpers.NewExecutor(p.Root(), io)
+
 	for _, genCtx := range genCtxs {
+		var extGen [][]string
+		var genCmds [][]string
+		executor := helpers.NewExecutor(p.Root(), io)
+		// generate the api's first
+		for _, ac := range genCtx.ApiGenContexts {
+			apack, err := p.packprovider.Provide(PluginName, "api/go")
+			if err != nil {
+				return fmt.Errorf("failed to load pack for apis: %s", err)
+			}
+			ctemplates, err := apack.LoadTemplates()
+			if err != nil {
+				return fmt.Errorf("failed to load template for apis: %s", err)
+			}
+			err = generateAPI(ctx, io, ctemplates, p.Root(), ac)
+			if err != nil {
+				return fmt.Errorf("failed to generate template for api: %s(%s): %s", ac.API.Kind.String(), ac.API.Version, err)
+			}
+		}
 		templates, err := p.pack.LoadTemplates()
 		if err != nil {
 			return fmt.Errorf("failed to load template for plugin: %s", err)
@@ -103,28 +259,49 @@ func (p *plugin) Generate(ctx context.Context, io fabricator.IOStreams, patterns
 		for _, v := range genCtx.ReplaceDependencies {
 			extGen = append(extGen, []string{"go", "mod", "edit", "--replace", fmt.Sprintf("%s=%s", v.Name, v.With)})
 		}
-
-		genCmds = append(genCmds, generationCommands...)
-	}
-	for _, generationCommand := range extGen {
-		if err = executor.Run(ctx, generationCommand[0], generationCommand[1:]...); err != nil {
-			return fmt.Errorf("failed to run template generation commands for project: %s", err)
+		// commands dont pass module boundaries so for this to work we will
+		// 1. set the workdir to the module directory of a >v1 version
+		// make the paths of operation relative to this new work dir
+		if !genCtx.ExtInfo.IsV1 {
+			newRoot := filepath.Join(p.Root(), genCtx.ExtInfo.Version)
+			executor = helpers.NewExecutor(newRoot, io)
+			for _, generationCommand := range generationCommands {
+				idx := len(generationCommand) - 1
+				lastelem := generationCommand[idx]
+				if strings.Contains(lastelem, genCtx.ExtInfo.Version) {
+					new, err := filepath.Rel(genCtx.ExtInfo.Version, lastelem)
+					if err != nil {
+						continue
+					}
+					generationCommand[idx] = new
+				}
+			}
 		}
-	}
-	if err = executor.Run(ctx, "go", "mod", "tidy"); err != nil {
-		fmt.Fprintf(io.Out, "go mod tidy failed: %s\n", err.Error())
-	}
-	// format files first so we dont run into generation failures
-	for _, generationCommand := range genCmds {
-		if generationCommand[0] == "goimports" {
+		genCmds = append(genCmds, generationCommands...)
+		for _, generationCommand := range extGen {
 			if err = executor.Run(ctx, generationCommand[0], generationCommand[1:]...); err != nil {
 				return fmt.Errorf("failed to run template generation commands for project: %s", err)
 			}
 		}
-	}
-	for _, generationCommand := range genCmds {
-		if err = executor.Run(ctx, generationCommand[0], generationCommand[1:]...); err != nil {
-			return fmt.Errorf("failed to run template generation commands for project: %s", err)
+		if err = executor.Run(ctx, "go", "mod", "tidy"); err != nil {
+			fmt.Fprintf(io.Out, "go mod tidy failed: %s\n", err.Error())
+		}
+		// format files first so we dont run into generation failures
+		for _, generationCommand := range genCmds {
+			if generationCommand[0] == "goimports" {
+				if err = executor.Run(ctx, generationCommand[0], generationCommand[1:]...); err != nil {
+					return fmt.Errorf("failed to run template generation commands for project: %s", err)
+				}
+			}
+		}
+		for _, generationCommand := range genCmds {
+			if err = executor.Run(ctx, generationCommand[0], generationCommand[1:]...); err != nil {
+				return fmt.Errorf("failed to run template generation commands for project: %s", err)
+			}
+		}
+		// and tidy again in case the generation commands added other modules
+		if err = executor.Run(ctx, "go", "mod", "tidy"); err != nil {
+			fmt.Fprintf(io.Out, "go mod tidy failed: %s\n", err.Error())
 		}
 	}
 
@@ -155,6 +332,7 @@ func newPlugin(ctx context.Context, io fabricator.IOStreams, config PluginConfig
 	}
 
 	plugin.pack = pack
+
 	plugin.packprovider = packprovider
 
 	return plugin, err

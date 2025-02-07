@@ -1,0 +1,4 @@
+!!if .ExtInfo.IsAdminAPI
+!!pathreplace VERSION {{.API.Version}}
+!!pathreplace GENERATED {{.PluginComponent.Spec.ServiceName | ToGoPackageName }}_{{.API.Version}}_admin
+!!filename .gitkeep

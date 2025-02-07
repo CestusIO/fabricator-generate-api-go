@@ -29,6 +29,30 @@ var _ = Describe("Config", func() {
 						PinDependency:     nil,
 						ReplaceDependency: nil,
 						ToolDependency:    nil,
+						ServiceName:       "sampleservice",
+						GenerateCPP:       true,
+						Apis: []fabricatorgenerateapigo.API{
+							{
+								Kind:    fabricatorgenerateapigo.Player,
+								Version: "v1",
+							},
+							{
+								Kind:    fabricatorgenerateapigo.Player,
+								Version: "v2",
+							},
+							{
+								Kind:    fabricatorgenerateapigo.S2S,
+								Version: "v1",
+							},
+							{
+								Kind:    fabricatorgenerateapigo.Admin,
+								Version: "v1",
+							},
+							{
+								Kind:    fabricatorgenerateapigo.Public,
+								Version: "v1",
+							},
+						},
 					},
 				},
 			},

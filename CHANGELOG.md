@@ -8,10 +8,14 @@ It assumes the use of [conventional commits](https://www.conventionalcommits.org
 ## [Unreleased]
 
 
-<a name="unreleased"></a>
-## unreleased
+<a name="v0.1.0"></a>
+## v0.1.0
 ### Chores
+- generate generator skeleton
 - add fab file
 
+### Features
+- generator implementation
 
-[Unreleased]: https://github.com/CestusIO/fabricator-generate-api-go/compare/unreleased...HEAD
+
+[Unreleased]: https://github.com/CestusIO/fabricator-generate-api-go/compare/v0.1.0...HEAD

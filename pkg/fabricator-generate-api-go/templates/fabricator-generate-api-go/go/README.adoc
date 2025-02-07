@@ -1,5 +1,5 @@
 
-= Templates
+= fabricator-generator-api-go
 
 You can add templates into this Folder. 
 

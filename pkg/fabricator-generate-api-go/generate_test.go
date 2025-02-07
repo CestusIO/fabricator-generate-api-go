@@ -7,10 +7,10 @@ package fabricatorgenerateapigo
 import (
 	"context"
 	"os"
-	"path"
 
 	"code.cestus.io/libs/codegenerator/pkg/templating"
 	"code.cestus.io/tools/fabricator/pkg/fabricator"
+	"code.cestus.io/tools/fabricator/pkg/helpers"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -31,11 +31,9 @@ var _ = Describe("Generation", func() {
 		root, err := os.MkdirTemp("./testdata", "generation")
 		Expect(err).ToNot(HaveOccurred())
 		// add go mod
-		gomod, err := os.Create(path.Join(root, "go.mod"))
+		executor := helpers.NewExecutor(root, io).WithEnv("GOWORK", "off")
+		err = executor.Run(ctx, "go", "mod", "init", "example.com/testmodule")
 		Expect(err).ToNot(HaveOccurred())
-		defer gomod.Close()
-		gomod.WriteString("module example.com/testmodule\n")
-		gomod.WriteString("go 1.18\n")
 		plugin, err := newPlugin(ctx, io, config, root, packProvider)
 		Expect(err).ToNot(HaveOccurred())
 		err = plugin.Generate(ctx, io)

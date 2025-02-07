@@ -2,6 +2,8 @@
 //
 // Modifications in code regions will be lost during regeneration!
 
+//go:generate  go-enum -f=config.go --marshal --noprefix
+
 package fabricatorgenerateapigo
 
 import (
@@ -32,13 +34,23 @@ type ReplaceDependency struct {
 	With string `yaml:"with" json:"with"`
 }
 
+// ENUM(Player, S2S, Admin, Public)
+type APIKind int
+
+type API struct {
+	Version string  `yaml:"version" json:"version"`
+	Kind    APIKind `yaml:"kind" json:"kind"`
+}
+
 // Spec contains the specification for the plugin
 type Spec struct {
 	PinDependency     PinDependencies     `yaml:"pinDependency,omitempty" json:"pinDependency,omitempty"`
 	ReplaceDependency ReplaceDependencies `yaml:"replaceDependency,omitempty" json:"replaceDependency,omitempty"`
 	ToolDependency    ToolDependencies    `yaml:"toolDependency,omitempty" json:"toolDependency,omitempty"`
 
-	ExampleValue string `yaml:"exampleValue" json:"exampleValue"`
+	Apis        []API  `yaml:"apis" json:"apis"`
+	ServiceName string `yaml:"serviceName" json:"serviceName"`
+	GenerateCPP bool   `yaml:"generateCPP" json:"generateCPP"`
 }
 
 // region CODE_REGION(PLUGIN_COMPONENT)

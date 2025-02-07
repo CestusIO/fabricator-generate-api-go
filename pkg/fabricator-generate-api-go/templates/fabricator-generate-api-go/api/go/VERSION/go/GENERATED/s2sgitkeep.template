@@ -1,0 +1,4 @@
+!!if .ExtInfo.IsS2SAPI
+!!pathreplace VERSION {{.API.Version}}
+!!pathreplace GENERATED {{.PluginComponent.Spec.ServiceName | ToGoPackageName }}_{{.API.Version}}_s2s
+!!filename .gitkeep

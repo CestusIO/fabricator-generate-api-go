@@ -1,0 +1,4 @@
+!!if .ExtInfo.IsPublicAPI
+!!pathreplace VERSION {{.API.Version}}
+!!pathreplace GENERATED {{.PluginComponent.Spec.ServiceName | ToGoPackageName }}_{{.API.Version}}_public
+!!filename .gitkeep

@@ -13,9 +13,9 @@ PLATFORMS               ?= linux
 # List of architectures to target [amd64/arm64]
 ARCHITECTURES           := amd64
 # Name of the app used for single application builds
-APP 					:= 
+APP 					:= fabricator-generate-api-go
 # List of applications to build (must reside in ./cmd/<name>)
-APPLICATIONS            := 
+APPLICATIONS            := fabricator-generate-api-go
 # Buildtime of a version will be passed as ldflag to go compiler
 ifeq ($(OS),Windows_NT)
     VERSION_DATE := $(shell powershell -Command "Get-Date -Format o")
