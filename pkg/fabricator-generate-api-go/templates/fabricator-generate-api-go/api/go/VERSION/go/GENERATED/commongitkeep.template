@@ -1,0 +1,3 @@
+!!pathreplace VERSION {{.API.Version}}
+!!pathreplace GENERATED {{.PluginComponent.Spec.ServiceName | ToGoPackageName }}_{{.API.Version}}_common
+!!filename .gitkeep

@@ -1,0 +1,16 @@
+!!pathreplace VERSION {{.API.Version}}
+!!filename {{.API.Version}}_player_service.proto
+!!if .ExtInfo.IsPlayerAPI
+
+syntax = "proto3";
+
+package {{.PluginComponent.Spec.ServiceName | ToGoPackageName }}.{{.API.Version}};
+option go_package = "{{.GoModule}}/{{.API.Version}}/go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.API.Version}}_player";
+option optimize_for = LITE_RUNTIME;
+
+import "{{.API.Version}}_common.proto";
+
+// Player{{.PluginComponent.Spec.ServiceName | ToGoName}} is a Player {{.PluginComponent.Spec.ServiceName | ToGoName}}
+service Player{{.PluginComponent.Spec.ServiceName | ToGoName}} {
+     rpc Echo(EchoMessage) returns (EchoMessage);
+}

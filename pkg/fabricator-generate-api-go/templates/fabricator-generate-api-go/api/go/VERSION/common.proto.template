@@ -1,0 +1,19 @@
+!!pathreplace VERSION {{.API.Version}}
+!!filename {{.API.Version}}_common.proto
+
+syntax = "proto3";
+
+package {{.PluginComponent.Spec.ServiceName | ToGoPackageName }}.{{.API.Version}};
+option go_package = "{{.GoModule}}/{{.API.Version}}/go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.API.Version}}_common";
+option optimize_for = LITE_RUNTIME;
+
+// EmptyMessage is a message without content
+message EmptyMessage{
+}
+
+// EchoMessage is a testmessage
+message EchoMessage{
+  //content is the content 
+  string content =1;
+}
+

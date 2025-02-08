@@ -1,0 +1,18 @@
+!!pathreplace VERSION {{.API.Version}}
+!!filename {{.API.Version}}_public_service.proto
+!!if .ExtInfo.IsPublicAPI
+
+syntax = "proto3";
+
+package {{.PluginComponent.Spec.ServiceName | ToGoPackageName }}.{{.API.Version}};
+option go_package = "{{.GoModule}}/{{.API.Version}}/go/{{.PluginComponent.Spec.ServiceName | ToGoPackageName}}_{{.API.Version}}_public";
+option optimize_for = LITE_RUNTIME;
+
+import "{{.API.Version}}_common.proto";
+
+// Public{{.PluginComponent.Spec.ServiceName | ToGoName}} is a Public {{.PluginComponent.Spec.ServiceName | ToGoName}}
+service Public{{.PluginComponent.Spec.ServiceName | ToGoName}} {
+     // Echo echos a message
+     rpc Echo(EchoMessage) returns (EchoMessage);
+}
+

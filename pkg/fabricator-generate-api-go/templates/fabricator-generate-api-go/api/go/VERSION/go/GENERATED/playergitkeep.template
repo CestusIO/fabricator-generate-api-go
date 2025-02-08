@@ -1,0 +1,5 @@
+!!if .ExtInfo.IsPlayerAPI
+!!pathreplace VERSION {{.API.Version}}
+!!pathreplace GENERATED {{.PluginComponent.Spec.ServiceName | ToGoPackageName }}_{{.API.Version}}_player
+!!filename .gitkeep
+

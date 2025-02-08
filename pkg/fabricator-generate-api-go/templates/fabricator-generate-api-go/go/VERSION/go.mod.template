@@ -1,0 +1,8 @@
+!!if (not .ExtInfo.IsV1)
+!!pathreplace VERSION {{.ExtInfo.Version}}
+{{ CodeSectionFileHeader | ToGoComment }}
+// region CODE_REGION(name)
+module {{.GoModule}}/{{.ExtInfo.Version}}
+
+go 1.23
+// endregion
